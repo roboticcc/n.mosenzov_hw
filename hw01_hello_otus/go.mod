@@ -1,4 +1,4 @@
-module github.com/roboticcc/n.mosenzov_hw
+module github.com/roboticcc/hw01_hello_otus
 
 go 1.22
 

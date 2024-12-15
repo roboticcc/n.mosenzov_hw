@@ -2,7 +2,6 @@ package hw02unpackstring
 
 import (
 	"errors"
-	"strings"
 	"unicode"
 )
 
@@ -14,7 +13,7 @@ func Unpack(str string) (string, error) {
 	}
 
 	runes := []rune(str)
-	var result strings.Builder
+	var result []rune
 	var prev rune
 	escaped := false
 
@@ -25,7 +24,7 @@ func Unpack(str string) (string, error) {
 			if r != '\\' && !unicode.IsDigit(r) {
 				return "", ErrInvalidString
 			}
-			result.WriteRune(r)
+			result = append(result, r)
 			prev = r
 			escaped = false
 			continue
@@ -42,17 +41,19 @@ func Unpack(str string) (string, error) {
 			}
 			repeatCount := int(r - '0')
 			if repeatCount > 0 {
-				result.WriteString(strings.Repeat(string(prev), repeatCount-1))
+				for j := 0; j < repeatCount-1; j++ {
+					result = append(result, prev)
+				}
+			} else if len(result) > 0 {
+				result = result[:len(result)-1]
 			} else {
-				currentStr := result.String()
-				result.Reset()
-				result.WriteString(currentStr[:len(currentStr)-1])
+				return "", ErrInvalidString
 			}
 			prev = 0
 			continue
 		}
 
-		result.WriteRune(r)
+		result = append(result, r)
 		prev = r
 	}
 
@@ -60,5 +61,5 @@ func Unpack(str string) (string, error) {
 		return "", ErrInvalidString
 	}
 
-	return result.String(), nil
+	return string(result), nil
 }

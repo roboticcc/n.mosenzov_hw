@@ -40,15 +40,17 @@ func Unpack(str string) (string, error) {
 				return "", ErrInvalidString
 			}
 			repeatCount := int(r - '0')
-			if repeatCount > 0 {
+			switch {
+			case repeatCount > 0:
 				for j := 0; j < repeatCount-1; j++ {
 					result = append(result, prev)
 				}
-			} else if len(result) > 0 {
+			case len(result) > 0:
 				result = result[:len(result)-1]
-			} else {
+			default:
 				return "", ErrInvalidString
 			}
+
 			prev = 0
 			continue
 		}

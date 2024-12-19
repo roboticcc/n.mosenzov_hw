@@ -1,6 +1,6 @@
 module github.com/roboticcc/n.mosenzov_hw/hw03_frequency_analysis
 
-go 1.23
+go 1.22
 
 require github.com/stretchr/testify v1.10.0
 

@@ -34,6 +34,10 @@ func (c *lruCache) Set(key Key, value any) bool {
 		return true
 	}
 
+	if c.capacity == 0 {
+		return false
+	}
+
 	if c.queue.Len() == c.capacity {
 		back := c.queue.Back()
 		c.queue.Remove(back)

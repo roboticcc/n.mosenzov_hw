@@ -48,4 +48,28 @@ func TestList(t *testing.T) {
 		}
 		require.Equal(t, []int{70, 80, 60, 40, 10, 30, 50}, elems)
 	})
+
+	t.Run("move to front on empty list", func(t *testing.T) {
+		l := NewList()
+		l.MoveToFront(nil) // Should not panic
+		require.Equal(t, 0, l.Len())
+		require.Nil(t, l.Front())
+		require.Nil(t, l.Back())
+	})
+
+	t.Run("remove all elements", func(t *testing.T) {
+		l := NewList()
+		l.PushBack(10) // [10]
+		l.PushBack(20) // [10, 20]
+		l.PushBack(30) // [10, 20, 30]
+
+		l.Remove(l.Front()) // [20, 30]
+		l.Remove(l.Front()) // [30]
+		l.Remove(l.Front()) // []
+
+		require.Equal(t, 0, l.Len())
+		require.Nil(t, l.Front())
+		require.Nil(t, l.Back())
+	})
+
 }

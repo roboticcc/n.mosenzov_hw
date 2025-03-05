@@ -71,5 +71,4 @@ func TestList(t *testing.T) {
 		require.Nil(t, l.Front())
 		require.Nil(t, l.Back())
 	})
-
 }

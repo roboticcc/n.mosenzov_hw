@@ -43,7 +43,7 @@ func TestRun(t *testing.T) {
 		defer goleak.VerifyNone(t)
 
 		n := 3
-		taskCount := 10
+		taskCount := 1200
 
 		var concurrentTasks int32
 		var maxConcurrentTasks int32
@@ -70,23 +70,23 @@ func TestRun(t *testing.T) {
 			}
 		}
 
+		errChan := make(chan error, 1)
 		go func() {
 			err := Run(tasks, n, 1)
-			require.NoError(t, err)
+			errChan <- err
 			close(done)
 		}()
 
-		require.Eventually(t, func() bool {
-			mu.Lock()
-			defer mu.Unlock()
-			return maxConcurrentTasks == int32(n)
-		}, 2*time.Second, 10*time.Millisecond, "Expected %d tasks to run concurrently, but got max %d", n, maxConcurrentTasks)
-
 		<-done
+		err := <-errChan
+		require.NoError(t, err)
+
+		mu.Lock()
+		require.Equal(t, int32(n), maxConcurrentTasks, "Expected %d tasks to run concurrently, but got max %d", n, maxConcurrentTasks)
+		mu.Unlock()
 
 		require.Equal(t, int32(0), atomic.LoadInt32(&concurrentTasks), "All tasks should be completed")
 	})
-
 	t.Run("tasks without errors", func(t *testing.T) {
 		tasksCount := 50
 		tasks := make([]Task, 0, tasksCount)

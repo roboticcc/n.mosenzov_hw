@@ -82,7 +82,8 @@ func TestRun(t *testing.T) {
 		require.NoError(t, err)
 
 		mu.Lock()
-		require.Equal(t, int32(n), maxConcurrentTasks, "Expected %d tasks to run concurrently, but got max %d", n, maxConcurrentTasks)
+		require.Equal(t, int32(n), maxConcurrentTasks,
+			"Expected %d tasks to run concurrently, but got max %d", n, maxConcurrentTasks)
 		mu.Unlock()
 
 		require.Equal(t, int32(0), atomic.LoadInt32(&concurrentTasks), "All tasks should be completed")

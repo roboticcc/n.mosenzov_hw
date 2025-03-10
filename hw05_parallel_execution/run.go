@@ -20,58 +20,47 @@ func Run(tasks []Task, n, m int) error {
 		return nil
 	}
 
-	tasksChan := make(chan Task, len(tasks))
-	stopChan := make(chan struct{})
-	defer close(stopChan)
-
+	tasksChan := make(chan Task)
+	errorsChan := make(chan struct{}, n)
 	var errorCount int32
 	var wg sync.WaitGroup
 
-	for _, task := range tasks {
-		tasksChan <- task
-	}
-	close(tasksChan)
-
 	wg.Add(n)
 	for i := 0; i < n; i++ {
-		go worker(tasksChan, stopChan, &wg, &errorCount, m)
+		go worker(tasksChan, errorsChan, &wg, &errorCount)
 	}
 
-	wg.Wait()
+	go func() {
+		defer close(tasksChan)
+		for _, task := range tasks {
+			tasksChan <- task
+		}
+	}()
 
-	if m > 0 && int(atomic.LoadInt32(&errorCount)) > m {
-		return ErrErrorsLimitExceeded
+	go func() {
+		wg.Wait()
+		close(errorsChan)
+	}()
+
+	for range errorsChan {
+		if m > 0 && int(atomic.LoadInt32(&errorCount)) > m {
+			return ErrErrorsLimitExceeded
+		}
 	}
 
 	return nil
 }
 
-func worker(tasksChan <-chan Task, stopChan chan struct{}, wg *sync.WaitGroup, errorCount *int32, m int) {
+func worker(tasksChan <-chan Task, errorsChan chan<- struct{}, wg *sync.WaitGroup, errorCount *int32) {
 	defer wg.Done()
 
-	for {
-		select {
-		case <-stopChan:
-			return
-		case task, ok := <-tasksChan:
-			if !ok {
-				return
-			}
-
-			if err := task(); err != nil {
-				newCount := atomic.AddInt32(errorCount, 1)
-				if m > 0 && int(newCount) > m {
-					signalStop(stopChan)
-					return
-				}
+	for task := range tasksChan {
+		if err := task(); err != nil {
+			atomic.AddInt32(errorCount, 1)
+			select {
+			case errorsChan <- struct{}{}:
+			default:
 			}
 		}
-	}
-}
-
-func signalStop(stopChan chan<- struct{}) {
-	select {
-	case stopChan <- struct{}{}:
-	default:
 	}
 }

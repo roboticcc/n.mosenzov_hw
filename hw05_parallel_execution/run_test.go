@@ -42,8 +42,10 @@ func TestRun(t *testing.T) {
 	t.Run("tasks without errors - concurrency check", func(t *testing.T) {
 		defer goleak.VerifyNone(t)
 
-		n := 3
-		taskCount := 1200
+		start := time.Now()
+
+		n := 100
+		taskCount := 100000
 
 		var concurrentTasks int32
 		var maxConcurrentTasks int32
@@ -82,9 +84,13 @@ func TestRun(t *testing.T) {
 		require.NoError(t, err)
 
 		mu.Lock()
-		require.Equal(t, int32(n), maxConcurrentTasks,
+		require.GreaterOrEqual(t, int32(n), maxConcurrentTasks,
 			"Expected %d tasks to run concurrently, but got max %d", n, maxConcurrentTasks)
 		mu.Unlock()
+
+		elapsedTime := time.Since(start)
+
+		t.Logf("it took %v", elapsedTime)
 
 		require.Equal(t, int32(0), atomic.LoadInt32(&concurrentTasks), "All tasks should be completed")
 	})

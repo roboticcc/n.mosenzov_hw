@@ -22,18 +22,22 @@ func Run(tasks []Task, n, m int) error {
 
 	tasksChan := make(chan Task)
 	errorsChan := make(chan struct{}, n)
+	termChan := make(chan struct{})
 	var errorCount int32
 	var wg sync.WaitGroup
 
 	wg.Add(n)
 	for i := 0; i < n; i++ {
-		go worker(tasksChan, errorsChan, &wg, &errorCount)
+		go worker(tasksChan, errorsChan, termChan, &wg, &errorCount)
 	}
 
 	go func() {
 		defer close(tasksChan)
 		for _, task := range tasks {
 			tasksChan <- task
+			if int(atomic.LoadInt32(&errorCount)) == m {
+				termChan <- struct{}{}
+			}
 		}
 	}()
 
@@ -51,13 +55,17 @@ func Run(tasks []Task, n, m int) error {
 	return nil
 }
 
-func worker(tasksChan <-chan Task, errorsChan chan<- struct{}, wg *sync.WaitGroup, errorCount *int32) {
+func worker(tasksChan <-chan Task, errorsChan chan<- struct{},
+	termChan <-chan struct{}, wg *sync.WaitGroup, errorCount *int32,
+) {
 	defer wg.Done()
 
 	for task := range tasksChan {
 		if err := task(); err != nil {
 			atomic.AddInt32(errorCount, 1)
 			select {
+			case <-termChan:
+				break
 			case errorsChan <- struct{}{}:
 			default:
 			}

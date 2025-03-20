@@ -18,27 +18,31 @@ func ExecutePipeline(in In, done In, stages ...Stage) Out {
 
 func work(in In, done In) In {
 	chNext := make(Bi)
-
 	go func() {
-		defer close(chNext)
 		for {
 			select {
 			case <-done:
-				<-in
+				close(chNext)
+				for data := range in {
+					_ = data
+				}
 				return
 			case data, ok := <-in:
 				if !ok {
+					close(chNext)
 					return
 				}
 				select {
 				case <-done:
-					<-in
+					close(chNext)
+					for data := range in {
+						_ = data
+					}
 					return
 				case chNext <- data:
 				}
 			}
 		}
 	}()
-
 	return chNext
 }

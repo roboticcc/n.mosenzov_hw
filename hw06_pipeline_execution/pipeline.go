@@ -32,6 +32,7 @@ func work(in In, done In) In {
 				}
 				select {
 				case <-done:
+					<-in
 					return
 				case chNext <- data:
 				}

@@ -12,8 +12,7 @@ func ExecutePipeline(in In, done In, stages ...Stage) Out {
 	for _, stage := range stages {
 		in = stage(work(in, done))
 	}
-
-	return in
+	return work(in, done)
 }
 
 func work(in In, done In) In {

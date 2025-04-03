@@ -14,7 +14,7 @@ var (
 	ErrIsDir                 = errors.New("file is a directory")
 	ErrInvalidLimit          = errors.New("limit can't be a negative number")
 	ErrEmptyPaths            = errors.New("from/to path not specified")
-	ErrSamePath              = errors.New("source and destination paths cannot be the same")
+	ErrSameFiles             = errors.New("source and destination files cannot be the same")
 )
 
 type progressWriter struct {
@@ -34,21 +34,18 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	if fromPath == "" || toPath == "" {
 		return ErrEmptyPaths
 	}
-	if fromPath == toPath {
-		return ErrSamePath
-	}
 
-	fi, err := os.Stat(fromPath)
+	fiFrom, err := os.Stat(fromPath)
 	if err != nil {
 		return err
 	}
-	if fi.IsDir() {
+	if fiFrom.IsDir() {
 		return ErrIsDir
 	}
-	if !fi.Mode().IsRegular() {
+	if !fiFrom.Mode().IsRegular() {
 		return ErrUnsupportedFile
 	}
-	if offset > fi.Size() {
+	if offset > fiFrom.Size() {
 		return ErrOffsetExceedsFileSize
 	}
 	if limit < 0 {
@@ -65,11 +62,6 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		}
 	}()
 
-	_, err = fromF.Seek(offset, io.SeekStart)
-	if err != nil {
-		return err
-	}
-
 	toF, err := os.Create(toPath)
 	if err != nil {
 		return err
@@ -80,7 +72,21 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		}
 	}()
 
-	remaining := fi.Size() - offset
+	fiTo, err := os.Stat(toPath)
+	if err != nil {
+		return err
+	}
+
+	if os.SameFile(fiFrom, fiTo) {
+		return ErrSameFiles
+	}
+
+	_, err = fromF.Seek(offset, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	remaining := fiFrom.Size() - offset
 	if limit == 0 || limit > remaining {
 		limit = remaining
 	}

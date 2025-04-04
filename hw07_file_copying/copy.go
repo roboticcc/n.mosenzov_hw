@@ -62,6 +62,13 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		}
 	}()
 
+	var fiTo os.FileInfo
+	if fiTo, err = os.Stat(toPath); err == nil {
+		if os.SameFile(fiFrom, fiTo) {
+			return ErrSameFiles
+		}
+	}
+
 	toF, err := os.Create(toPath)
 	if err != nil {
 		return err
@@ -71,15 +78,6 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 			log.Printf("failed to close destination file %s: %v", toPath, err)
 		}
 	}()
-
-	fiTo, err := os.Stat(toPath)
-	if err != nil {
-		return err
-	}
-
-	if os.SameFile(fiFrom, fiTo) {
-		return ErrSameFiles
-	}
 
 	_, err = fromF.Seek(offset, io.SeekStart)
 	if err != nil {

@@ -69,7 +69,7 @@ func TestCopy(t *testing.T) {
 
 	t.Run("source is a directory", func(t *testing.T) {
 		dirPath := filepath.Join("testdata", "testdir")
-		err := os.MkdirAll(dirPath, 0755)
+		err := os.MkdirAll(dirPath, 0o755)
 		require.NoError(t, err)
 		defer os.RemoveAll(dirPath)
 
@@ -120,7 +120,7 @@ func TestCopy(t *testing.T) {
 
 	t.Run("copy from testdata file", func(t *testing.T) {
 		srcPath := filepath.Join("testdata", "sample.txt")
-		err := os.WriteFile(srcPath, []byte("sample content"), 0644)
+		err := os.WriteFile(srcPath, []byte("sample content"), 0o644)
 		require.NoError(t, err)
 		defer os.Remove(srcPath)
 

@@ -16,6 +16,7 @@ linters-settings:
           - "!$test"
         allow:
           - $gostd
+          - github.com/stretchr/testify
       Test:
         files:
           - $test

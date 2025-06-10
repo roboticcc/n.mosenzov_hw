@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -38,6 +39,61 @@ func TestRun(t *testing.T) {
 		require.LessOrEqual(t, runTasksCount, int32(workersCount+maxErrorsCount), "extra tasks were started")
 	})
 
+	t.Run("tasks without errors - concurrency check", func(t *testing.T) {
+		defer goleak.VerifyNone(t)
+
+		start := time.Now()
+
+		n := 100
+		taskCount := 100000
+
+		var concurrentTasks int32
+		var maxConcurrentTasks int32
+		var mu sync.Mutex
+		done := make(chan struct{})
+
+		tasks := make([]Task, taskCount)
+		for i := 0; i < taskCount; i++ {
+			tasks[i] = func() error {
+				current := atomic.AddInt32(&concurrentTasks, 1)
+
+				mu.Lock()
+				if current > maxConcurrentTasks {
+					maxConcurrentTasks = current
+				}
+				mu.Unlock()
+
+				for j := 0; j < 100000; j++ {
+					_ = j * j
+				}
+
+				atomic.AddInt32(&concurrentTasks, -1)
+				return nil
+			}
+		}
+
+		errChan := make(chan error, 1)
+		go func() {
+			err := Run(tasks, n, 1)
+			errChan <- err
+			close(done)
+		}()
+
+		<-done
+		err := <-errChan
+		require.NoError(t, err)
+
+		mu.Lock()
+		require.GreaterOrEqual(t, int32(n), maxConcurrentTasks,
+			"Expected %d tasks to run concurrently, but got max %d", n, maxConcurrentTasks)
+		mu.Unlock()
+
+		elapsedTime := time.Since(start)
+
+		t.Logf("it took %v", elapsedTime)
+
+		require.Equal(t, int32(0), atomic.LoadInt32(&concurrentTasks), "All tasks should be completed")
+	})
 	t.Run("tasks without errors", func(t *testing.T) {
 		tasksCount := 50
 		tasks := make([]Task, 0, tasksCount)

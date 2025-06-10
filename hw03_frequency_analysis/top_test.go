@@ -7,7 +7,7 @@ import (
 )
 
 // Change to true if needed.
-var taskWithAsteriskIsCompleted = false
+var taskWithAsteriskIsCompleted = true
 
 var text = `Как видите, он  спускается  по  лестнице  вслед  за  своим
 	другом   Кристофером   Робином,   головой   вниз,  пересчитывая
@@ -78,5 +78,17 @@ func TestTop10(t *testing.T) {
 			}
 			require.Equal(t, expected, Top10(text))
 		}
+	})
+
+	t.Run("case with hyphen only words & emojis", func(t *testing.T) {
+		textWithHyphens := "тест - -- --- test test ❤️ ❤️ ❤️ ❤️"
+		expected := []string{
+			"❤️",
+			"test",
+			"--",
+			"---",
+			"тест",
+		}
+		require.Equal(t, expected, Top10(textWithHyphens))
 	})
 }

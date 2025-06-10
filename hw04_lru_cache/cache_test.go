@@ -50,7 +50,58 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+		c := NewCache(3)
+
+		c.Set("a", 1)
+		c.Set("b", 2)
+		c.Set("c", 3)
+
+		c.Set("d", 4)
+
+		c.Clear()
+
+		require.Equal(t, 0, c.(*lruCache).queue.Len())
+		require.Equal(t, 0, len(c.(*lruCache).items))
+	})
+
+	t.Run("repeated add and remove", func(t *testing.T) {
+		c := NewCache(2)
+
+		c.Set("a", 1)
+		c.Set("b", 2)
+		c.Set("c", 3) // "a" should be evicted
+
+		_, ok := c.Get("a")
+		require.False(t, ok)
+
+		c.Set("d", 4) // "b" should be evicted
+
+		_, ok = c.Get("b")
+		require.False(t, ok)
+
+		val, ok := c.Get("c")
+		require.True(t, ok)
+		require.Equal(t, 3, val)
+
+		val, ok = c.Get("d")
+		require.True(t, ok)
+		require.Equal(t, 4, val)
+	})
+
+	t.Run("update existing key", func(t *testing.T) {
+		c := NewCache(2)
+
+		c.Set("a", 1)
+		c.Set("b", 2)
+		c.Set("a", 100) // Update "a"
+
+		val, ok := c.Get("a")
+		require.True(t, ok)
+		require.Equal(t, 100, val)
+
+		val, ok = c.Get("b")
+		require.True(t, ok)
+		require.Equal(t, 2, val)
 	})
 }
 
